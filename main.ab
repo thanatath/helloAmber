@@ -1,0 +1,48 @@
+// IPv4 Logger
+import {file_exist,file_write,file_read,file_append} from "std/fs"
+import {exit} from "std/env"
+import {lines,len,parse,split,trim} from "std/text" 
+import {date_posix,now} from "std/date" 
+
+let file_name = "ipv4.txt"
+
+let ipv4_endpoint = "https://api.ipify.org"
+
+fun fetch_ipv4(){
+    return unsafe $curl {ipv4_endpoint}$
+}
+
+fun log_exist(){
+    let is_log_exist = file_exist(file_name)
+    return is_log_exist
+}
+
+fun check_same_previous_ip(current_ip){
+    let logfile_content = unsafe lines(file_read(file_name))
+    let last_line_from_log = len(logfile_content)-1 
+    let previous_ip = split(logfile_content[last_line_from_log],":")
+    let previous_ip_text = previous_ip[0]
+    return trim(current_ip) == trim(previous_ip_text)  
+}
+
+fun log_content(current_ip){
+    let log_context = current_ip + " : " + unsafe $date$
+    return log_context as Text
+}
+
+fun main(){
+    let current_ip = fetch_ipv4()
+    if not(current_ip is Text) : exit(1)
+    let log_content = log_content(current_ip)
+    if not log_exist() {
+        echo "Log file does not exist. Create and logging"
+        unsafe file_write(file_name,log_content)
+    }
+    else {
+        echo "Logging IPv4"
+        if not check_same_previous_ip(current_ip) : echo "IP Changed !"
+        unsafe file_append(file_name,log_content)
+    }
+}
+
+unsafe main()
